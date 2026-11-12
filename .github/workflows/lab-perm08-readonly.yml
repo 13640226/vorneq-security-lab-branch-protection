@@ -1,0 +1,34 @@
+name: LAB PERM08 Read-only Status Denial
+on:
+  push:
+    branches: ["feature/perm08"]
+permissions:
+  contents: read
+jobs:
+  status-denial-probe:
+    if: github.repository == '13640226/vorneq-security-lab-branch-protection'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify readonly token cannot publish lab-only status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error, sys
+          repo = os.environ['GITHUB_REPOSITORY']
+          sha = os.environ['GITHUB_SHA']
+          assert repo == "13640226/vorneq-security-lab-branch-protection"
+          data = json.dumps({"state":"success","context":"vorneq-lab/perm08-readonly","description":"synthetic permission denial probe"}).encode()
+          req = urllib.request.Request(f"https://api.github.com/repos/{repo}/statuses/{sha}",data=data,method="POST",headers={"Authorization":"Bearer "+os.environ['GH_TOKEN'],"Accept":"application/vnd.github+json","Content-Type":"application/json"})
+          try:
+              with urllib.request.urlopen(req,timeout=15) as resp:
+                  print("FAIL: readonly token unexpectedly created status; HTTP",resp.status)
+                  sys.exit(1)
+          except urllib.error.HTTPError as exc:
+              print("STATUS_WRITE_HTTP_CODE=",exc.code)
+              if exc.code == 403:
+                  print("PASS: read-only push token cannot write commit status")
+              else:
+                  print("INCONCLUSIVE: unexpected status code")
+                  sys.exit(2)
+          PY
