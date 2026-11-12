@@ -1,0 +1,26 @@
+name: LAB PERM08 Explicit Write Demonstration
+on:
+  push:
+    branches: ["feature/perm08-write"]
+permissions:
+  contents: read
+  statuses: write
+jobs:
+  status-write-probe:
+    if: github.repository == '13640226/vorneq-security-lab-branch-protection'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish lab-only status on current feature SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          repo=os.environ["GITHUB_REPOSITORY"]; sha=os.environ["GITHUB_SHA"]
+          assert repo=="13640226/vorneq-security-lab-branch-protection"
+          payload=json.dumps({"state":"success","context":"vorneq-lab/perm08-write","description":"synthetic allowed feature push status"}).encode()
+          request=urllib.request.Request(f"https://api.github.com/repos/{repo}/statuses/{sha}",data=payload,method="POST",headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Content-Type":"application/json","Accept":"application/vnd.github+json"})
+          with urllib.request.urlopen(request,timeout=15) as response:
+              assert response.status == 201
+              print("PASS: explicitly writable feature push published lab-only status; HTTP",response.status)
+          PY
