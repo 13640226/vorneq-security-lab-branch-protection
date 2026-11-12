@@ -1,0 +1,16 @@
+name: LAB PR Synthetic CI
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  lab-ci:
+    name: lab-ci-gate
+    if: github.repository == '13640226/vorneq-security-lab-branch-protection'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No production data
+        run: |
+          echo "LAB SYNTHETIC CHECK"
+          test "$GITHUB_REPOSITORY" = '13640226/vorneq-security-lab-branch-protection'
