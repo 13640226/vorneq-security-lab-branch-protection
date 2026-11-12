@@ -2,6 +2,7 @@ name: LAB SRC09 Branch-Restricted Environment
 on:
   push:
     branches: ["feature/src09"]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
